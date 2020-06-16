@@ -1,0 +1,67 @@
+# Automatically update fastlane
+update_fastlane
+
+default_platform(:ios)
+
+# Default temporary keychain password and name, if not included from environment
+TEMP_KEYCHAIN_NAME_DEFAULT = "fastlane_flutter"
+TEMP_KEYCHAN_PASSWORD_DEFAULT = "$W0rdf!sh"
+
+# Remove the temporary keychain, if it exists
+def delete_temp_keychain(name)
+  delete_keychain(
+    name: name
+  ) if File.exist? File.expand_path("~/Library/Keychains/#{name}-db")
+end
+
+# Create the temporary keychain with name and password
+def create_temp_keychain(name, password)
+  create_keychain(
+    name: name,
+    password: password,
+    unlock: false,
+    timeout: false
+  )
+end
+
+# Ensure we have a fresh, empty temporary keychain
+def ensure_temp_keychain(name, password)
+  delete_temp_keychain(name)
+  create_temp_keychain(name, password)
+end
+
+
+platform :ios do
+  desc "Build & sign iOS app"
+  lane :build_ios do |options|
+    get_certificates
+    get_provisioning_profile
+    disable_automatic_code_signing(
+      path: "./Runner.xcodeproj",
+      
+      team_id: CredentialsManager::AppfileConfig.try_fetch_value(:team_id),
+      profile_name: "match AppStore #{CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)}",
+      code_sign_identity: "iPhone Distribution"
+    )
+    keychain_name = ENV['TEMP_KEYCHAIN_NAME'] || TEMP_KEYCHAIN_NAME_DEFAULT
+    keychain_password = "$W0rdf!sh"
+    ensure_temp_keychain(keychain_name, keychain_password)
+    match(
+      app_identifier: CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier),
+      
+      team_id: CredentialsManager::AppfileConfig.try_fetch_value(:team_id),
+      type: "development",
+      readonly: is_ci,
+      keychain_name: keychain_name,
+      keychain_password: keychain_password
+    )
+    sh "./flutter_test.sh"
+    sh "./flutter_build.sh --clean"
+    build_ios_app(
+      export_options: {
+          method: "development"
+      }
+    )
+    delete_temp_keychain(keychain_name)
+  end
+end

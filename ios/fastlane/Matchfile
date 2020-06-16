@@ -1,0 +1,13 @@
+git_url("http://devops.cafs.technology/erizakaria/mba-apps.git")
+git_branch("master")
+storage_mode("git")
+
+type("development") # The default type, can be: appstore, adhoc, enterprise or development
+app_identifier("technology.cafs.mba") 
+team_id("Y8QMV79WGM")
+username("cafs.technology@gmail.com")
+
+shallow_clone true
+force_for_new_devices true
+ENV["FASTLANE_PASSWORD"] = "B@ndung123" #password to access git repo
+ENV["MATCH_PASSWORD"] = "B@ndung123" #password for the .p12 files saved in git repo
